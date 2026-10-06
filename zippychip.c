@@ -24,11 +24,13 @@ typedef struct {
 
 	unsigned char key[16];
     WINDOW *screen;
+    bool draw_flag;
 } Chip8;
 
 void draw_menu();
 
 Chip8 chip_init(WINDOW *win);
+void chip_cycle(Chip8 *chip);
 
 int main(int argc, char **argv) {
     int ch;
@@ -103,7 +105,36 @@ Chip8 chip_init(WINDOW *win) {
     chip.sp = 0;
     chip.screen = win;
 
+    chip.draw_flag = false;
+
     return chip;
+}
+
+void chip_cycle(Chip8 *chip) {
+    // Combine first 4 bits for full opcode
+    chip->opcode = chip->memory[chip->pc] << 8 | chip->memory[chip->pc + 1];
+    
+    // Switch for instruction
+    switch(chip->opcode & 0xF000) {
+
+        case 0xA000: // ANNN: Sets I to the address NNN
+            // Execute opcode
+            chip->I = chip->opcode & 0x0FFF;
+            chip->pc += 2;
+            break;
+        default:
+            
+    }
+
+    // timers
+    if(chip->delay_timer > 0)
+        chip->delay_timer--;
+ 
+    if(chip->sound_timer > 0) {
+        if(chip->sound_timer == 1)
+            printf("BEEP!\n");
+        chip->sound_timer--;
+    }  
 }
 
 void draw_menu() {
