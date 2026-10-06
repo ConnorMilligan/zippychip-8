@@ -11,8 +11,8 @@ typedef struct {
 	unsigned char memory[4096];
 	unsigned char V[16];
 
-	unsigned short index;
-	unsigned short program_counter;
+	unsigned short I;
+	unsigned short pc;
 
 	unsigned char gfx[SCREEN_WIDTH * SCREEN_HEIGHT];
 
@@ -20,14 +20,15 @@ typedef struct {
 	unsigned char sound_timer;
 
 	unsigned short stack[16];
-	unsigned short stack_pointer
+	unsigned short sp;
 
 	unsigned char key[16];
+    WINDOW *screen;
 } Chip8;
 
 void draw_menu();
 
-Chip8 chip_init();
+Chip8 chip_init(WINDOW *win);
 
 int main(int argc, char **argv) {
     int ch;
@@ -38,14 +39,20 @@ int main(int argc, char **argv) {
 	keypad(stdscr, TRUE);
 	noecho();
 	nodelay(stdscr, TRUE);
+    draw_menu();
+    refresh();
+
+	WINDOW *canvas = newwin(SCREEN_WIDTH, SCREEN_HEIGHT, 1, 1);
+    Chip8 chip8 = chip_init(canvas);
 
 	while (true) {
 		getmaxyx(stdscr, rows, cols);
 
 		if (rows < SCREEN_HEIGHT + 2 || cols < SCREEN_WIDTH + 2) {
-			clear();
-			mvprintw(0, 0, "Terminal size is too small. Please resize the terminal.");
-			refresh();
+			wclear(canvas);
+			mvwprintw(canvas, 0, 0, "Terminal size is too small. Please resize the terminal.");
+            
+			wrefresh(canvas);
 			ch = getch();
 			if (ch == 'q') {
 				break;
@@ -55,7 +62,6 @@ int main(int argc, char **argv) {
 
 
 
-		draw_menu();
 
 		mvprintw(1, 1, "Rows: %d, Cols: %d", rows, cols);
 		refresh();
@@ -74,7 +80,31 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
+Chip8 chip_init(WINDOW *win) {
+    Chip8 chip;
 
+	chip.opcode = 0;
+    // clear memory
+    for (int i = 0; i < 4096; i++) {
+        chip.memory[i] = 0;
+    }
+    // clear registers & stack
+    for (int i = 0; i < 16; i++) {
+        chip.V[i] = 0;
+        chip.stack[i] = 0;
+    }
+
+	chip.I = 0;
+	chip.pc = 0x200;
+
+    chip.delay_timer = 0;
+	chip.sound_timer = 0;
+
+    chip.sp = 0;
+    chip.screen = win;
+
+    return chip;
+}
 
 void draw_menu() {
 	for (int i = 0; i < SCREEN_HEIGHT + 2; i++) {
